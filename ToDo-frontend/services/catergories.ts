@@ -3,6 +3,7 @@ import instance from "./axios";
 export interface Category {
   id: number;
   category: string;
+  completed: boolean;
 }
 
 export class Categories {

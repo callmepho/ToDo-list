@@ -32,10 +32,12 @@ export class TodoController {
   }
 
   @Put(':id')
-  async updateTodo(
-    @Param('id') id: number,
-    @Body() updateTodoDto: UpdateTodoDto,
-  ) {
+  updatePut(@Param('id') id: number, @Body() updateTodoDto: UpdateTodoDto) {
+    return this.todoService.updateTodo(id, updateTodoDto);
+  }
+
+  @Patch(':id')
+  updatePatch(@Param('id') id: number, @Body() updateTodoDto: UpdateTodoDto) {
     return this.todoService.updateTodo(id, updateTodoDto);
   }
 

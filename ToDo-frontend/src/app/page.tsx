@@ -6,6 +6,7 @@ import { Categories, Category } from "../../services/catergories";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
+import { comment } from "postcss";
 
 const border =
   "shadow-[rgba(6,_24,_44,_0.4)_0px_0px_0px_2px,_rgba(6,_24,_44,_0.65)_0px_4px_6px_-1px,_rgba(255,_255,_255,_0.08)_0px_1px_0px_inset]";
@@ -16,16 +17,16 @@ const smButton =
 
 const toDoSchema = Yup.object().shape({
   description: Yup.string().required("Todo is empty"),
-  categoryId: Yup.number()
-    .typeError("Invalid category")
-    .required("Please select category"),
+  categoryId: Yup.number().typeError("Invalid Category"),
 });
 
 const categorySchema = Yup.object().shape({
   category: Yup.string().required("Category empty"),
 });
 
-const Card = ({ todo, reloadData }: any) => {
+const Card = ({ todo, reloadData, categories }: any) => {
+  const [edit, setEdit] = useState(false);
+
   const deleteToDo = async () => {
     await ToDos.delete(todo.id)
       .then((response) => console.log(response))
@@ -35,12 +36,62 @@ const Card = ({ todo, reloadData }: any) => {
 
   return (
     <div className={"w-full h-max my-5 p-2 " + border}>
-      <h1 className="text-xl">Task: {todo.description}</h1>
-      <h3 className="text-l">Category: {todo.category.category}</h3>
-      <button className={button}>Duplicate</button>
+      {!edit ? (
+        <CardData todo={todo} reloadData={reloadData} setEdit={setEdit} />
+      ) : (
+        <EditTodoForm
+          todo={todo}
+          categories={categories}
+          reloadData={reloadData}
+          setEdit={setEdit}
+        />
+      )}
+    </div>
+  );
+};
+
+const CardData = ({ todo, reloadData, setEdit }: any) => {
+  const deleteToDo = async () => {
+    await ToDos.delete(todo.id)
+      .then((response) => console.log(response))
+      .catch((error) => console.log(error));
+    reloadData();
+  };
+
+  const handleChange = async () => {
+    await ToDos.patch(todo.id, { completed: !todo.completed })
+      .then((response) => console.log(response))
+      .catch((error) => console.log(error));
+    reloadData();
+  };
+
+  const duplicateToDo = async () => {
+    const { description, category } = todo;
+    const dupe = {
+      description: description,
+      categoryId: category?.id,
+    };
+    await ToDos.create(dupe)
+      .then((response) => console.log(response))
+      .catch((error) => console.log(error));
+    reloadData();
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between">
+        <h1 className="text-xl">Task: {todo.description}</h1>
+        <button onClick={() => setEdit(true)}>Edit</button>
+      </div>
+      <h3 className="text-l">Category: {todo.category?.category || "none"}</h3>
+      <button className={button} onClick={duplicateToDo}>
+        Duplicate
+      </button>
       <button className={button} onClick={deleteToDo}>
         Delete
       </button>
+      <label>Completed </label>
+      <input type="checkbox" checked={todo.completed} onChange={handleChange} />
     </div>
   );
 };
@@ -86,14 +137,16 @@ const AddTodoForm = ({ categories, reloadData }: any) => {
 
   const addToDo = async (data: any) => {
     // POST data
-    const { category } = data;
-    data.category = parseInt(category);
+    const { categoryId } = data;
+    data.categoryId = parseInt(categoryId);
+    if (categoryId == 0) {
+      data = { description: data.description };
+    }
+    console.log(data);
     await ToDos.create(data)
       .then((response) => console.log(response))
       .catch((error) => console.log(error));
     reloadData();
-
-    console.log(data);
   };
 
   return (
@@ -102,8 +155,8 @@ const AddTodoForm = ({ categories, reloadData }: any) => {
       {errors?.description && (
         <p className="text-red-600">{errors.description.message}</p>
       )}
-      <select defaultValue={"DEFAULT"} {...register(`categoryId`)}>
-        <option value="DEFAULT" disabled></option>
+      <select defaultValue={0} {...register(`categoryId`)}>
+        <option value={0}>-none-</option>
         {categories.map((category: any, idx: number) => (
           <option key={idx} value={category.id}>
             {category.category}
@@ -114,6 +167,65 @@ const AddTodoForm = ({ categories, reloadData }: any) => {
         <p className="text-red-600">{errors.categoryId.message}</p>
       )}
       <button className={button}>Add</button>
+    </form>
+  );
+};
+
+const EditTodoForm = ({ todo, categories, reloadData, setEdit }: any) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: yupResolver(toDoSchema),
+    defaultValues: {
+      description: todo.description,
+      categoryId: todo.category?.id,
+    },
+    mode: "all",
+  });
+
+  const editToDo = async (data: any) => {
+    const { categoryId } = data;
+    data.categoryId = parseInt(categoryId);
+    if (categoryId == 0) {
+      data = { description: data.description };
+    }
+    console.log(data);
+    await ToDos.put(todo.id, data)
+      .then((response) => console.log(response))
+      .catch((error) => console.log(error));
+    reloadData();
+    setEdit(false);
+  };
+
+  const handleCancel = () => {
+    setEdit(false);
+  };
+
+  return (
+    <form className="flex gap-5" onSubmit={handleSubmit(editToDo)}>
+      <input type="text" {...register(`description`)} />
+      {errors?.description && (
+        <p className="text-red-600">{errors.description.message}</p>
+      )}
+      <select {...register(`categoryId`)}>
+        <option value={0}>-none-</option>
+        {categories.map((category: any, idx: number) => (
+          <option key={idx} value={category.id}>
+            {category.category}
+          </option>
+        ))}
+      </select>
+      {errors?.categoryId && (
+        <p className="text-red-600">{errors.categoryId.message}</p>
+      )}
+      <button className={button} type="submit">
+        Save
+      </button>
+      <button className={button} onClick={handleCancel}>
+        Cancel
+      </button>
     </form>
   );
 };
@@ -197,7 +309,12 @@ export default function Home() {
           <div className="flex flex-col justify-center items-center">
             {toDos != null &&
               toDos.map((todo, idx) => (
-                <Card key={idx} todo={todo} reloadData={reloadData} />
+                <Card
+                  key={idx}
+                  todo={todo}
+                  reloadData={reloadData}
+                  categories={categories}
+                />
               ))}
           </div>
         </div>

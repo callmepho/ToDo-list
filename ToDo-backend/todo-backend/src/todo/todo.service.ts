@@ -36,15 +36,26 @@ export class TodoService {
   async createTodo(createTodoDto: CreateTodoDto): Promise<Todo> {
     const { description, categoryId } = createTodoDto;
 
-    const category = await this.categoryService.getCategoryById(categoryId);
+    let category: Category | null = null;
 
-    const todo = new Todo();
-    todo.description = description;
-    todo.category = category;
+    // Check if categoryId is provided and valid
+    if (categoryId !== undefined && categoryId !== null) {
+      // Use the CategoryService to find the category
+      category = await this.categoryService.getCategoryById(categoryId);
 
-    await this.todoRepository.persistAndFlush(todo);
+      if (!category) {
+        throw new NotFoundException(`Category with ID ${categoryId} not found`);
+      }
+    }
 
-    return todo;
+    // Explicitly set category to null if not provided
+    const newTodo = this.em.create(Todo, {
+      description,
+      category: category || null,
+    });
+    await this.todoRepository.persistAndFlush(newTodo);
+
+    return newTodo;
   }
 
   async updateTodo(id: number, updateTodoDto: UpdateTodoDto): Promise<Todo> {
@@ -54,14 +65,10 @@ export class TodoService {
       throw new NotFoundException(`Todo with ID ${id} not found`);
     }
 
-    const { description, categoryId } = updateTodoDto;
+    // Update only the provided fields in the updateTodoDto
+    this.em.assign(todo, updateTodoDto);
 
-    const category = await this.categoryService.getCategoryById(categoryId);
-
-    todo.description = description;
-    todo.category = category;
-
-    await this.todoRepository.flush();
+    await this.todoRepository.persistAndFlush(todo);
 
     return todo;
   }

@@ -3,7 +3,7 @@ import { Category } from "./catergories";
 
 export interface ToDo {
   description: string;
-  category: Category;
+  category?: Category;
 }
 
 export class ToDos {
@@ -20,6 +20,16 @@ export class ToDos {
 
   public static async delete(id: number): Promise<any> {
     const response = await instance.delete(`/todo/${id}`);
+    return response.data;
+  }
+
+  public static async put(id: number, todo: any): Promise<any> {
+    const response = await instance.put(`/todo/${id}`, todo);
+    return response.data;
+  }
+
+  public static async patch(id: number, todo: any): Promise<any> {
+    const response = await instance.patch(`/todo/${id}`, todo);
     return response.data;
   }
 }
