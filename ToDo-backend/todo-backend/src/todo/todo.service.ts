@@ -33,14 +33,26 @@ export class TodoService {
     return todo;
   }
 
+  async getTodosByParam(category: string, completed: boolean): Promise<Todo[]> {
+    const query: Record<any, any> = {};
+
+    if (completed == false) {
+      query.completed = completed;
+    }
+
+    if (category !== undefined) {
+      query.category = { category };
+    }
+
+    return this.todoRepository.find(query, { populate: ['category'] });
+  }
+
   async createTodo(createTodoDto: CreateTodoDto): Promise<Todo> {
     const { description, categoryId } = createTodoDto;
 
     let category: Category | null = null;
 
-    // Check if categoryId is provided and valid
     if (categoryId !== undefined && categoryId !== null) {
-      // Use the CategoryService to find the category
       category = await this.categoryService.getCategoryById(categoryId);
 
       if (!category) {
@@ -48,7 +60,6 @@ export class TodoService {
       }
     }
 
-    // Explicitly set category to null if not provided
     const newTodo = this.em.create(Todo, {
       description,
       category: category || null,
@@ -65,7 +76,6 @@ export class TodoService {
       throw new NotFoundException(`Todo with ID ${id} not found`);
     }
 
-    // Update only the provided fields in the updateTodoDto
     this.em.assign(todo, updateTodoDto);
 
     await this.todoRepository.persistAndFlush(todo);

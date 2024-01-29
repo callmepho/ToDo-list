@@ -31,6 +31,10 @@ export class CategoryService {
     return category;
   }
 
+  async getCategoryByName(category: string): Promise<Category | null> {
+    return this.categoryRepository.findOne({ category: category });
+  }
+
   async createCategory(category: string): Promise<Category> {
     const existingCategory = await this.categoryRepository.findOne({
       category,

@@ -4,6 +4,7 @@ import { Category } from "./catergories";
 export interface ToDo {
   description: string;
   category?: Category;
+  completed: boolean;
 }
 
 export class ToDos {
@@ -31,5 +32,21 @@ export class ToDos {
   public static async patch(id: number, todo: any): Promise<any> {
     const response = await instance.patch(`/todo/${id}`, todo);
     return response.data;
+  }
+
+  public static async filter(
+    category: string,
+    completed: boolean
+  ): Promise<ToDo[]> {
+    let query = "";
+    if (category !== "") {
+      query += `&category=${category}`;
+    }
+    if (completed !== undefined) {
+      query += `&completed=${completed}`;
+    }
+    const data = await instance.get(`/todo?${query}`);
+    console.log(data);
+    return data.data;
   }
 }

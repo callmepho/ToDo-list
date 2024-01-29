@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Put,
+  Query,
 } from '@nestjs/common';
 import { TodoService } from './todo.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
@@ -17,10 +18,17 @@ export class TodoController {
   constructor(private readonly todoService: TodoService) {}
 
   @Get()
-  async getAllTodos() {
-    return this.todoService.getAllTodos();
+  async getTodos(
+    @Query('category') category?: string,
+    @Query('completed') completed?: string,
+  ) {
+    const isCompleted = completed ? completed === 'true' : undefined;
+    if (category !== undefined || isCompleted !== undefined) {
+      return this.todoService.getTodosByParam(category, isCompleted);
+    } else {
+      return this.todoService.getAllTodos();
+    }
   }
-
   @Get(':id')
   async getTodoById(@Param('id') id: number) {
     return this.todoService.getTodoById(id);
